@@ -1,9 +1,9 @@
 <script setup>
-import TheWelcome from '../components/TheWelcome.vue'
+import TheTitle from '@/components/globals/TheTitle.vue'
 </script>
 
 <template>
   <main>
-    <TheWelcome />
+    <TheTitle>Canny<span class="spacer"></span>Sound</TheTitle>
   </main>
 </template>
