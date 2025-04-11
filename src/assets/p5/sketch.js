@@ -21,8 +21,8 @@ draw = () => {
   background(bg)
 
   let wav = fft.waveform()
-  createLine(wav)
-  // createCircle(wav)
+  // createLine(wav)
+  createCircle(wav)
 
   noFill()
   stroke(fg)
