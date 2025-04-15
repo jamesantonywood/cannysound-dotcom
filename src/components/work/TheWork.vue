@@ -1,36 +1,19 @@
 <script setup>
-const projects = [
-  {
-    thumbnail: '/img/work/placeholder-1.jpg',
-    name: 'test-1',
-  },
-  {
-    thumbnail: '/img/work/placeholder-2.jpg',
-    name: 'test-2',
-  },
-  {
-    thumbnail: '/img/work/placeholder-3.jpg',
-    name: 'test-2',
-  },
-  {
-    thumbnail: '/img/work/placeholder-4.jpg',
-    name: 'test-2',
-  },
-]
+import axios from 'axios'
+import { onMounted, ref } from 'vue'
+import TheProject from './TheProject.vue'
+
+const projects = ref([])
+onMounted(() => {
+  axios.get('http://localhost:1337/api/projects?populate=*').then((r) => {
+    projects.value = r.data.data
+  })
+})
 </script>
 
 <template>
-  <div class="projects">
-    <div v-for="p in projects" class="project" :key="p.name">
-      <div class="media">
-        <img :src="p.thumbnail" alt="" />
-      </div>
-      <div class="meta">
-        <div class="meta-pill">Sound Design</div>
-        <div class="meta-pill">Production</div>
-        <div class="meta-pill">March 2025</div>
-      </div>
-    </div>
+  <div class="projects" ref="root">
+    <TheProject v-for="p in projects" :class="`project ${p.id}`" :key="p.id" :p="p" />
   </div>
 </template>
 
@@ -40,25 +23,50 @@ const projects = [
   display: flex;
   flex-direction: column;
   align-items: end;
-  padding-top: 16px;
-  padding-bottom: 100px;
-  gap: 32px;
+  /* padding-top: 16px; */
+
+  /* gap: 32px; */
   .project {
-    width: 100%;
-    max-width: 1024px;
+    /* width: 100%; */
+    /* border: 1px solid red; */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    min-width: 55vw;
+    width: 872px;
+    max-width: 100%;
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: end;
+    filter: blur(30px) grayscale(100%);
+    transition: filter 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+    /* max-width: 1024px; */
     .media {
       aspect-ratio: 16/9;
+      min-width: 55vw;
+      width: 872px;
+      max-width: 100%;
       border-radius: 10px;
-      background: var(--hover);
+      background: var(--color-accent);
       display: flex;
-      justify-content: center;
       align-items: center;
-      padding: 16px;
-      img {
-        width: 100%;
+      justify-content: center;
+      padding: 8px;
+
+      video {
+        overflow: hidden;
+        /* width: 100%; */
         height: 100%;
         object-fit: contain;
-        border-radius: 10px;
+        border-radius: 5px;
+      }
+    }
+    &.is-visible {
+      filter: blur(0px) grayscale(0%);
+      .media {
       }
     }
     .meta {
@@ -69,7 +77,7 @@ const projects = [
       gap: 16px;
       .meta-pill {
         padding: 0.25em 1em;
-        background: var(--hover);
+        background: var(--color-accent);
         border-radius: 5em;
       }
     }

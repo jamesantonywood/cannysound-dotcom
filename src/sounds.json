@@ -1,0 +1,11 @@
+{
+  "tracks": [
+    { "name": "test-audio", "url": "./src/assets/audio/test.mp3" },
+    { "name": "vinyl-texture", "url": "./src/assets/audio/vinyl-textures.mp3" },
+    { "name": "ding", "url": "./src/assets/audio/ding.mp3" },
+    { "name": "pop-up", "url": "./src/assets/audio/pop-up.mp3" },
+    { "name": "click", "url": "./src/assets/audio/click.mp3" },
+    { "name": "zoom", "url": "./src/assets/audio/zoom.wav" },
+    { "name": "ambient-jazz", "url": "./src/assets/audio/ambient-jazz.mp3" }
+  ]
+}

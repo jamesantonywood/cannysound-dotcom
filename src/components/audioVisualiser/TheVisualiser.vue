@@ -1,10 +1,7 @@
 <template>
   <div class="audio-visualizer">
     <canvas ref="spectrumCanvas" class="spectrum-canvas"></canvas>
-    <!-- <div v-if="audioStore.isLoading" class="loading-overlay">Loading audio tracks...</div> -->
-    <!-- <div v-if="audioStore.error" class="error-overlay">Error: {{ audioStore.error }}</div> -->
   </div>
-  <button @click="handleClick">enable sound</button>
 </template>
 
 <script setup>
@@ -17,12 +14,6 @@ const audioStore = useAudioStore()
 // Local refs
 const spectrumCanvas = ref(null)
 let animationFrameId = null
-
-// Handle canvas click
-const handleClick = () => {
-  console.log('clicked')
-  audioStore.playTrackLoop('./src/assets/audio/ambient-jazz.mp3')
-}
 
 // Draw spectrum visualization
 const drawSpectrum = () => {
@@ -49,7 +40,7 @@ const drawSpectrum = () => {
     analyser,
     canvas.width,
     canvas.height / 2,
-    window.getComputedStyle(document.body).getPropertyValue('--color-text') || '#fff',
+    window.getComputedStyle(document.body).getPropertyValue('--color-accent') || '#fff',
   )
 
   // Continue animation loop
@@ -171,7 +162,6 @@ button {
 
 .spectrum-canvas {
   display: block;
-  /* background-color: #000; */
   width: 100%;
   height: 100%;
 }

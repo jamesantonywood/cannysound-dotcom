@@ -1,51 +1,6 @@
 @import './modules/base.css';
 @import './modules/variables.css';
-
-@keyframes grain {
-  0% {
-    transform: translate(20%, 15%);
-  }
-
-  10% {
-    transform: translate(-20%, -15%);
-  }
-
-  20% {
-    transform: translate(20%, -5%);
-  }
-
-  30% {
-    transform: translate(-20%, -5%);
-  }
-
-  40% {
-    transform: translate(20%, 5%);
-  }
-
-  50% {
-    transform: translate(-20%, -5%);
-  }
-
-  60% {
-    transform: translate(20%, -15%);
-  }
-
-  70% {
-    transform: translate(-20%, 15%);
-  }
-
-  80% {
-    transform: translate(20%, 5%);
-  }
-
-  90% {
-    transform: translate(-20%, -5%);
-  }
-
-  100% {
-    transform: translate(20%, 5%);
-  }
-}
+@import './modules/keyframes.css';
 
 html,
 body,
@@ -103,10 +58,13 @@ body {
 }
 
 main {
-  padding: 164px 32px 0px;
+  padding: 0px 16px 0px;
   min-height: 100svh;
   position: relative;
   z-index: 1;
+  @media screen and (min-width: 1024px) {
+    padding: 0px 32px 0px;
+  }
 }
 
 .title {
@@ -117,6 +75,7 @@ main {
     line-height: 0;
     display: inline-block;
     position: fixed;
+    z-index: 1000;
     bottom: -0;
     transform: translateY(0.02em);
     left: -1vw;

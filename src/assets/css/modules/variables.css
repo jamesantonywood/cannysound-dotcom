@@ -1,5 +1,6 @@
 :root {
   --color-background: #e5e5e1;
+  --color-accent: #413b3b;
   --color-text: #1d1616;
   --texture-opacity: 0.04;
   --hover: #1d161612;
@@ -9,6 +10,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --color-background: #1d1616;
+    --color-accent: #413b3b;
     --color-text: #e5e5e1;
     --texture-opacity: 0.02;
     --hover: #e5e5e112;
