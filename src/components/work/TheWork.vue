@@ -45,15 +45,16 @@ onMounted(() => {
     transition: filter 1s cubic-bezier(0.34, 1.56, 0.64, 1);
     /* max-width: 1024px; */
     .media {
-      aspect-ratio: 16/9;
+      aspect-ratio: 15/9;
       min-width: 55vw;
       width: 872px;
       max-width: 100%;
       border-radius: 10px;
-      background: var(--color-accent);
+      border: 1px solid var(--color-accent);
+      background: var(--color-background);
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
       padding: 8px;
 
       video {

@@ -15,6 +15,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     TheHeader: typeof import('./src/components/globals/header/TheHeader.vue')['default']
     TheLogo: typeof import('./src/components/globals/TheLogo.vue')['default']
+    TheModal: typeof import('./src/components/globals/TheModal.vue')['default']
     TheProject: typeof import('./src/components/work/TheProject.vue')['default']
     TheTitle: typeof import('./src/components/globals/TheTitle.vue')['default']
     TheVisualiser: typeof import('./src/components/audioVisualiser/TheVisualiser.vue')['default']

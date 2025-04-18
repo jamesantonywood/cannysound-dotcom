@@ -128,6 +128,8 @@ onMounted(async () => {
 
   // Add resize event listener
   window.addEventListener('resize', handleResize)
+
+  audioStore.playTrackLoop('./src/assets/audio/ambient-jazz.mp3')
 })
 
 onBeforeUnmount(() => {
