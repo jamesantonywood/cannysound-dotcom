@@ -16,7 +16,7 @@ onMounted(async () => {
   <main>
     <!-- <TheTitle>About</TheTitle> -->
     <div class="body">
-      <TheTitle>About</TheTitle>
+      <TheTitle :responsive="true">About</TheTitle>
       <motion.p
         v-for="p in about"
         :key="p.children.text"
@@ -39,25 +39,4 @@ onMounted(async () => {
   </main>
 </template>
 
-<style scoped>
-.body {
-  padding-top: 20em;
-  padding-bottom: 30em;
-
-  width: 1024px;
-  margin-left: auto;
-
-  max-width: 100%;
-
-  p {
-    font-size: min(max(2em, 4vw), 4em);
-    line-height: 1;
-    margin-bottom: 0.5em;
-    text-wrap: balance;
-    small {
-      font-weight: 300;
-      font-size: 0.5em;
-    }
-  }
-}
-</style>
+<style scoped></style>

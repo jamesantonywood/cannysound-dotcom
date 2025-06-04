@@ -1,9 +1,16 @@
 <script setup>
 import { AnimatePresence, motion } from 'motion-v'
+
+defineProps({
+  responsive: {
+    type: Boolean,
+    default: false,
+  },
+})
 </script>
 
 <template>
-  <div class="title">
+  <div :class="'title' + (responsive ? ' responsive' : '')">
     <AnimatePresence>
       <motion.h1
         :initial="{ y: '200%' }"

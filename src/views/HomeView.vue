@@ -4,6 +4,8 @@ import TheTitle from '@/components/globals/TheTitle.vue'
 
 <template>
   <main>
-    <TheTitle>Canny<span class="spacer"></span>Sound</TheTitle>
+    <TheTitle :responsive="false">Canny<span class="spacer"></span>Sound</TheTitle>
   </main>
 </template>
+
+<style scoped></style>

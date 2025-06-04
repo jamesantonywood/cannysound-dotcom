@@ -4,6 +4,7 @@ import { defineStore } from 'pinia'
 export const useAudioStore = defineStore('audio', {
   // State
   state: () => ({
+    isMuted: false,
     audioContext: null,
     analyser: null,
     mixer: null,
@@ -376,6 +377,28 @@ export const useAudioStore = defineStore('audio', {
       this.hasPlayedFirstTrack = true
 
       return videoData
+    },
+
+    isVideoPlaying() {
+      console.log('checking if video is playing')
+    },
+
+    pauseVideoAudio(url) {
+      if (!this.videoElements[url]) return false
+
+      const video = this.videoElements[url].element
+      video.pause()
+
+      // Remove from active sources
+      const index = this.activeSources.findIndex(
+        (source) => source.type === 'video' && source.url === url,
+      )
+
+      if (index !== -1) {
+        this.activeSources.splice(index, 1)
+      }
+
+      return true
     },
 
     // Stop playing a video

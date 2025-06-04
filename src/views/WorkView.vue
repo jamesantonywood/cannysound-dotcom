@@ -13,24 +13,28 @@ const audio = useAudioStore()
 
 // })
 onMounted(async () => {
-  console.log('something')
-  audio.setVolume(0.3, 2.0)
-  // audio.stopLoopingTrack('./src/assets/audio/ambient-jazz.mp3')
+  if (audio.volume !== 0) {
+    audio.setVolume(0.3, 2.0)
+  }
   const videos = await audio.fetchVideosFromStrapi()
-
-  // Now videos are available in audioStore.trackList
-  console.log('Videos loaded:', audio.trackList)
 })
 onUnmounted(() => {
-  // audio.stopAllSounds()
-  // audio.playTrackLoop('./src/assets/audio/ambient-jazz.mp3')
-  audio.setVolume(1.0, 2.0)
+  // audio.setVolume(1.0, 2.0)
 })
 </script>
 
 <template>
   <main>
-    <TheTitle>Work</TheTitle>
+    <TheTitle :responsive="true">Work</TheTitle>
     <TheWork />
   </main>
 </template>
+
+<style scoped>
+main {
+  padding-top: 134px;
+  @media screen and (min-width: 1024px) {
+    padding-top: 0;
+  }
+}
+</style>

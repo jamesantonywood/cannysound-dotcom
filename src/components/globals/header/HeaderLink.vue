@@ -6,12 +6,6 @@ let audioStore = useAudioStore()
 defineProps({
   to: String,
 })
-
-const tracks = [
-  './src/assets/audio/pop-up.mp3',
-  './src/assets/audio/zoom.wav',
-  './src/assets/audio/click.mp3',
-]
 </script>
 
 <template>
