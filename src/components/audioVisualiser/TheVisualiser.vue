@@ -137,7 +137,7 @@ onMounted(async () => {
   window.addEventListener('resize', handleResize)
 
   if (!props.isMuted) {
-    audioStore.playTrackLoop('./src/assets/audio/background-ambience.mp3')
+    audioStore.playTrackLoop('/audio/background-ambience.mp3')
   }
 })
 

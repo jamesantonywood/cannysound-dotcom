@@ -1,6 +1,6 @@
 <script setup>
 import Lenis from 'lenis'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { RouterView } from 'vue-router'
 import { useAudioStore } from './stores/audioStore'
 import { useThemeStore } from './stores/themeStore'

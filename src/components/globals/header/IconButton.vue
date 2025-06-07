@@ -4,8 +4,8 @@ import { useAudioStore } from '@/stores/audioStore'
 const themeStore = useThemeStore()
 const audioStore = useAudioStore()
 const sounds = {
-  light: './src/assets/audio/LightMode.mp3',
-  dark: './src/assets/audio/DarkMode.mp3',
+  light: '/audio/LightMode.mp3',
+  dark: '/audio/DarkMode.mp3',
 }
 
 const handleClick = () => {

@@ -12,17 +12,13 @@ const copyEmail = async (myText) => {
     console.warn('Cannot copy: ', myText, e)
   }
 }
-const hovers = [
-  './src/assets/audio/hover_1.mp3',
-  './src/assets/audio/hover_2.mp3',
-  './src/assets/audio/hover_3.mp3',
-]
+const hovers = ['/audio/hover_1.mp3', '/audio/hover_2.mp3', '/audio/hover_3.mp3']
 const randomHover = () => {
   const randomIndex = Math.floor(Math.random() * hovers.length)
   return hovers[randomIndex]
 }
 
-const clicks = ['./src/assets/audio/Click1.mp3', './src/assets/audio/Click2.mp3']
+const clicks = ['/audio/Click1.mp3', '/audio/Click2.mp3']
 
 const randomClick = () => {
   const randomIndex = Math.floor(Math.random() * clicks.length)
@@ -31,7 +27,7 @@ const randomClick = () => {
 
 const copySound = () => {
   copyEmail('hello@cannysound.co.uk')
-  audioStore.playTrack('./src/assets/audio/screenshot.mp3')
+  audioStore.playTrack('/audio/screenshot.mp3')
 }
 </script>
 
@@ -43,7 +39,7 @@ const copySound = () => {
         <p class="email">
           <a
             href="mailto:hello@cannysound.co.uk"
-            @mouseenter="audioStore.playTrack('./src/assets/audio/GotaProject.mp3')"
+            @mouseenter="audioStore.playTrack('/audio/GotaProject.mp3')"
             @click="audioStore.playTrack(randomClick())"
             >hello@cannysound.co.uk</a
           >

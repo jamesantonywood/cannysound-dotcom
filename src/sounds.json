@@ -1,15 +1,15 @@
 {
   "tracks": [
-    { "name": "background-ambience", "url": "./src/assets/audio/background-ambience.mp3" },
-    { "name": "click-1", "url": "./src/assets/audio/Click1.mp3" },
-    { "name": "click-2", "url": "./src/assets/audio/Click2.mp3" },
-    { "name": "dark-mode", "url": "./src/assets/audio/DarkMode.mp3" },
-    { "name": "light-mode", "url": "./src/assets/audio/LightMode.mp3" },
-    { "name": "gotaproject", "url": "./src/assets/audio/GotaProject.mp3" },
-    { "name": "scratch", "url": "./src/assets/audio/scratch.mp3" },
-    { "name": "screenshot", "url": "./src/assets/audio/screenshot.mp3" },
-    { "name": "hover_1", "url": "./src/assets/audio/hover_1.mp3" },
-    { "name": "hover_2", "url": "./src/assets/audio/hover_2.mp3" },
-    { "name": "hover_3", "url": "./src/assets/audio/hover_3.mp3" }
+    { "name": "background-ambience", "url": "/audio/background-ambience.mp3" },
+    { "name": "click-1", "url": "/audio/Click1.mp3" },
+    { "name": "click-2", "url": "/audio/Click2.mp3" },
+    { "name": "dark-mode", "url": "/audio/DarkMode.mp3" },
+    { "name": "light-mode", "url": "/audio/LightMode.mp3" },
+    { "name": "gotaproject", "url": "/audio/GotaProject.mp3" },
+    { "name": "scratch", "url": "/audio/scratch.mp3" },
+    { "name": "screenshot", "url": "/audio/screenshot.mp3" },
+    { "name": "hover_1", "url": "/audio/hover_1.mp3" },
+    { "name": "hover_2", "url": "/audio/hover_2.mp3" },
+    { "name": "hover_3", "url": "/audio/hover_3.mp3" }
   ]
 }

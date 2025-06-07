@@ -4,55 +4,55 @@
       "name": "WilCre",
       "description": "Music and Sound Design for Newcastle based photographer Will Creswick",
       "tags": ["Music", "Sound Design", "Portfolio"],
-      "video": "/src/assets/video/Will_Cre.mp4"
+      "video": "/video/Will_Cre.mp4"
     },
     {
       "name": "PERCNT",
       "description": "Description: Music and Sound Design for PERCNT SS25 ONPACE PERFORMANCE campaign. Filmed and Directed by: <a href='https://www.instagram.com/_paul_geist_/' target='_blank', rel='noopener noreferrer'>@_paul_geist_</a>",
       "tags": ["Music", "Sound Design", "Fashion"],
-      "video": "/src/assets/video/Percnt-Master.mp4"
+      "video": "/video/Percnt-Master.mp4"
     },
     {
       "name": "Cafe Mountain",
       "description": "Music and Sound Design for Cafe Mountain SS25 Promotional video. Filmed and Directed by: <a href='https://www.instagram.com/_paul_geist_/' target='_blank', rel='noopener noreferrer'>@_paul_geist_</a>",
       "tags": ["Music", "Sound Design", "Fashion"],
-      "video": "/src/assets/video/Cafe-Mountain-Studio.mp4"
+      "video": "/video/Cafe-Mountain-Studio.mp4"
     },
     {
       "name": "Wave",
       "description": "Music and Sound Design for promotional behind the scenes production video by Wave. <a href='https://www.instagram.com/designedbywave/' target='_blank', rel='noopener noreferrer'>@designedbywave</a>",
       "tags": ["Music", "Sound Design", "Lifestyle"],
-      "video": "/src/assets/video/Waves_Main.mp4"
+      "video": "/video/Waves_Main.mp4"
     },
     {
       "name": "Falcus & Wood",
       "description": "Music and Sound Design for Falcus & Wood Collection 001 Promotional video. Filmed and Directed by: <a href='https://www.instagram.com/_paul_geist_/' target='_blank', rel='noopener noreferrer'>@_paul_geist_</a>",
       "tags": ["Music", "Sound Design", "Fashion"],
-      "video": "/src/assets/video/Falcus-Wood.mp4"
+      "video": "/video/Falcus-Wood.mp4"
     },
     {
       "name": "PODIUM",
       "description": "Music and Sound Design for Podium Creatine advert. Filmed and Directed by: <a href='https://www.instagram.com/common______ground/' target='_blank', rel='noopener noreferrer'>@common______ground</a>",
       "tags": ["Music", "Sound Design", "Health & Fitness"],
-      "video": "/src/assets/video/PODIUM.mp4"
+      "video": "/video/PODIUM.mp4"
     },
     {
       "name": "Wave",
       "description": "Music and Sound Design for Wave phone case animation. <a href='https://www.instagram.com/designedbywave/' target='_blank', rel='noopener noreferrer'>@designedbywave</a>",
       "tags": ["Music", "Sound Design", "Portfolio"],
-      "video": "/src/assets/video/Wave_magsafe.mp4"
+      "video": "/video/Wave_magsafe.mp4"
     },
     {
       "name": "Tayla",
       "description": "Music and Sound Design for Tayla Howe in training. Road to the Rogue Invitational 2024. Filmed and Directed by: <a href='https://www.instagram.com/common______ground/' target='_blank', rel='noopener noreferrer'>@common______ground</a>",
       "tags": ["Music", "Sound Design", "Health & Fitness"],
-      "video": "/src/assets/video/Tayla.mp4"
+      "video": "/video/Tayla.mp4"
     },
     {
       "name": "Sometimes My Body Feels Like An Image",
       "description": "A short fashion film proposal for <a href='https://www.instagram.com/gentlemonster/' target='_blank', rel='noopener noreferrer'>@gentlemonster</a>, based on the concept of perception distortion in derealization disorder. Filmed and Directed by: <a href='https://www.instagram.com/zi_shuuuu/' target='_blank', rel='noopener noreferrer'>@zi_shuuuu</a>",
       "tags": ["Music", "Sound Design", "Portfolio"],
-      "video": "/src/assets/video/Sometimes-my-Body.mp4"
+      "video": "/video/Sometimes-my-Body.mp4"
     }
   ]
 }

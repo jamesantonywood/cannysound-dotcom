@@ -71,7 +71,7 @@ const handlePause = () => {
     audio.pauseTrack(videoRef.value.src)
     if (!audio.isMuted) {
       audio.setVolume(0.5, 0.0)
-      audio.playTrackLoop('./src/assets/audio/background-ambience.mp3')
+      audio.playTrackLoop('/audio/background-ambience.mp3')
     }
   }
 }
@@ -122,7 +122,7 @@ const handleVideoEnd = () => {
   isPlaying.value = false
   if (!audio.isMuted) {
     audio.setVolume(0.5, 0.0)
-    audio.playTrackLoop('./src/assets/audio/background-ambience.mp3')
+    audio.playTrackLoop('/audio/background-ambience.mp3')
   }
   console.log('ended!')
 }

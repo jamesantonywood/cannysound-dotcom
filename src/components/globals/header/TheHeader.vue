@@ -9,7 +9,7 @@ const audioStore = useAudioStore()
 
 const handleLogoClick = () => {
   // audioStore.stopTrack('./src/assets/audio/background-ambience.mp3')
-  audioStore.playTrack('./src/assets/audio/scratch.mp3')
+  audioStore.playTrack('/audio/scratch.mp3')
   // audioStore.playLoopTrack('./src/assets/audio/background-ambience.mp3')
 }
 </script>

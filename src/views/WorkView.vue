@@ -12,15 +12,16 @@ const audio = useAudioStore()
 //   // Load videos when component mounts
 
 // })
+let videos
 onMounted(async () => {
   if (!audio.isMuted) {
     audio.setVolume(0.5, 2.0)
   }
-  const videos = await audio.fetchVideos()
+  videos = await audio.fetchVideos()
 })
 onUnmounted(() => {
   audio.stopAllVideos()
-  audio.playTrackLoop('./src/assets/audio/background-ambience.mp3')
+  audio.playTrackLoop('/audio/background-ambience.mp3')
   if (!audio.isMuted) {
     audio.setVolume(1.0, 2.0)
   }
