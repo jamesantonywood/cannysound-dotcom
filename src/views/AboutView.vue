@@ -44,7 +44,7 @@ import { motion } from 'motion-v'
           amount: 0.9,
         }"
       >
-        <small>Founded by Mathew Swinbourne</small>
+        <small>Founded by Matthew Swinbourne</small>
       </motion.p>
 
       <!-- <p v-for="p in about.about_body.value" :key="p.children.text">

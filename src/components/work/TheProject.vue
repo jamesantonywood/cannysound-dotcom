@@ -54,22 +54,23 @@ const playVideo = () => {
   }
   // TODO: handle play and pause better
   audio.stopAllSounds()
-  if (!isMuted.value) {
+  if (!audio.isMuted) {
     audio.setVolume(1.0, 0.0)
   } else {
     audio.setVolume(0.0, 0.0)
   }
   isPlaying.value = true
-  videoRef.value.play()
   audio.playTrack(videoRef.value.src)
+  videoRef.value.play()
 }
 
 const handlePause = () => {
+  console.log('handle pause', audio.siteMute)
   if (!videoRef.value) return
   if (videoRef.value.paused) {
     isPlaying.value = false
     audio.pauseTrack(videoRef.value.src)
-    if (!audio.isMuted) {
+    if (!audio.siteMute) {
       audio.setVolume(0.5, 0.0)
       audio.playTrackLoop('/audio/background-ambience.mp3')
     }
@@ -87,24 +88,32 @@ const restartVideo = () => {
   audio.stopTrack(videoRef.value.src)
   videoRef.value.currentTime = 0.0
   if (videoRef.value.paused === false) {
-    audio.playTrack(videoRef.value.src)
+    // audio.playTrack(videoRef.value.src)
   }
 }
 
 const muteVideo = () => {
   if (!videoRef.value) return
-  videoRef.value.muted = !videoRef.value.muted
-  if (videoRef.value.muted) {
+
+  // videoRef.value.muted = !videoRef.value.muted
+  if (!audio.isMuted) {
     audio.isMuted = true
     audio.setVolume(0.0, 0.0)
   } else {
-    audio.setVolume(1.0, 0.0)
+    // console.log(!videoRef.value.paused)
+    if (!videoRef.value.paused) {
+      audio.setVolume(1.0, 0.0)
+    } else {
+      audio.setVolume(0.5, 0.0)
+    }
     audio.isMuted = false
   }
 }
 
 const openFullscreen = () => {
   if (!videoRef.value) return
+  audio.stopAllSounds()
+  videoRef.value.currentTime = 0.0
   if (videoRef.value.requestFullscreen) {
     videoRef.value.requestFullscreen()
   } else if (videoRef.value.mozRequestFullScreen) {
@@ -156,10 +165,10 @@ onMounted(() => {
         <video
           ref="videoRef"
           :src="p.video"
-          playsinline="true"
+          playsinline
           @ended="handleVideoEnd"
           @pause="handlePause"
-          :muted="audio.isMuted"
+          muted="true"
         ></video>
         <div class="video-controls">
           <div class="control" @click="playVideo" ref="playbackButton">
@@ -250,7 +259,7 @@ onMounted(() => {
   /* padding: 7.5rem 0; */
   padding-bottom: 2rem;
   gap: 2rem;
-  /* flex-wrap: wrap; */
+
   .content {
     max-width: 500px;
 
@@ -275,6 +284,7 @@ onMounted(() => {
     .video {
       width: 100%;
       max-width: 100vw;
+      max-height: 400px;
       border-radius: 10px;
       border: 1px solid var(--color-accent);
       background: var(--color-background);
@@ -336,6 +346,13 @@ onMounted(() => {
         path {
           fill: var(--color-text);
         }
+      }
+    }
+  }
+  @media screen and (min-width: 500px) {
+    .media {
+      .video {
+        max-height: unset;
       }
     }
   }

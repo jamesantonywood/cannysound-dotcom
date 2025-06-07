@@ -7,7 +7,6 @@ body,
 #app {
   width: 100vw;
   min-height: 100svh;
-  /* overflow: hidden; */
 }
 
 .texture {

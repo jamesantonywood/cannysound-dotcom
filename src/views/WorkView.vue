@@ -36,6 +36,36 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+body {
+  /* overflow: hidden;
+  margin: 0;
+  height: 100%; */
+}
+.projects::-webkit-scrollbar {
+  /* display: none; Chrome/Safari */
+}
+.projects {
+  /* height: 100vh !important;
+  border: 1px solid blue;
+  overflow-y: none;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  scroll-snap-points-y: repeat(100vh); */
+
+  /* Optional: hide scrollbar for cleaner look */
+  /* scrollbar-width: none; Firefox */
+  /* -ms-overflow-style: none; IE/Edge */
+  .project {
+    /* height: 100vh;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    position: relative; */
+  }
+}
 main {
   padding-top: 134px;
   @media screen and (min-width: 1024px) {

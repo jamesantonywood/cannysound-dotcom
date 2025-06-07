@@ -19,10 +19,12 @@ let showModal = ref(true)
 const closeModal = (status) => {
   console.log(status)
   if (status === 'muted') {
+    audioStore.siteMute = true
     audioStore.isMuted = true
     audioStore.setVolume(0.0, 0.0)
     audioStore.stopAllSounds()
   } else {
+    audioStore.siteMute = true
     audioStore.isMuted = false
     audioStore.setVolume(1.0, 0.0)
   }
@@ -32,9 +34,9 @@ const closeModal = (status) => {
 
 onMounted(async () => {
   // Initialize Lenis
-  new Lenis({
-    autoRaf: true,
-  })
+  // new Lenis({
+  //   autoRaf: true,
+  // })
   // Initialize audio context
   audioStore.initAudioContext()
 })

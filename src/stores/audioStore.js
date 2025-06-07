@@ -4,22 +4,27 @@ import { defineStore } from 'pinia'
 export const useAudioStore = defineStore('audio', {
   // State
   state: () => ({
+    siteMute: false,
     isMuted: false,
     audioContext: null,
     analyser: null,
     mixer: null,
     audioBuffers: {},
-    activeSources: new Map(), // Changed to Map for better tracking
+    activeSources: new Map(),
     isVisualizationRunning: false,
     hasPlayedFirstTrack: false,
     trackList: [],
     isLoading: true,
     error: null,
-    loopingTracks: {}, // Track which URLs are currently looping
-    volume: 1.0, // Default volume level (1.0 = 100%)
-    transitionTime: 1.0, // Default transition time in seconds
+    loopingTracks: {},
+    volume: 1.0,
+    transitionTime: 1.0,
+    videoElements: {},
 
-    videoElements: {}, // Store references to video elements
+    // Mobile-specific state
+    isContextUnlocked: false,
+    needsUserGesture: true,
+    isMobile: false,
   }),
 
   // Getters
@@ -28,10 +33,76 @@ export const useAudioStore = defineStore('audio', {
     isPlaying: (state) => state.activeSources.size > 0,
     firstTrack: (state) => state.trackList[0] || null,
     currentVolume: (state) => state.volume,
+    canPlayAudio: (state) => state.isContextUnlocked && !state.needsUserGesture,
   },
 
   // Actions
   actions: {
+    // Initialize and detect mobile
+    init() {
+      this.detectMobile()
+      this.setupMobileListeners()
+    },
+
+    // Detect if we're on a mobile device
+    detectMobile() {
+      this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent,
+      )
+      console.log('Mobile device detected:', this.isMobile)
+    },
+
+    // Set up listeners for mobile unlock
+    setupMobileListeners() {
+      if (this.isMobile) {
+        // Listen for first user interaction
+        const unlockEvents = ['touchstart', 'touchend', 'mousedown', 'click']
+
+        const unlock = () => {
+          this.unlockAudioContext()
+          unlockEvents.forEach((event) => {
+            document.removeEventListener(event, unlock, true)
+          })
+        }
+
+        unlockEvents.forEach((event) => {
+          document.addEventListener(event, unlock, true)
+        })
+      }
+    },
+
+    // Unlock audio context for mobile
+    async unlockAudioContext() {
+      if (this.isContextUnlocked) return true
+
+      try {
+        if (!this.audioContext) {
+          this.initAudioContext()
+        }
+
+        // Resume the context
+        if (this.audioContext.state === 'suspended') {
+          await this.audioContext.resume()
+        }
+
+        // Play a silent sound to unlock
+        const buffer = this.audioContext.createBuffer(1, 1, 22050)
+        const source = this.audioContext.createBufferSource()
+        source.buffer = buffer
+        source.connect(this.audioContext.destination)
+        source.start(0)
+
+        this.isContextUnlocked = true
+        this.needsUserGesture = false
+
+        console.log('Audio context unlocked for mobile')
+        return true
+      } catch (error) {
+        console.error('Failed to unlock audio context:', error)
+        return false
+      }
+    },
+
     initAudioContext() {
       if (!this.audioContext) {
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)()
@@ -40,58 +111,48 @@ export const useAudioStore = defineStore('audio', {
         this.mixer.connect(this.analyser)
         this.analyser.connect(this.audioContext.destination)
 
-        // Set initial volume with taper
-        this.setVolume(this.volume, 0) // No transition for initial setup
+        // Set initial volume
+        this.setVolume(this.volume, 0)
+
+        // Handle context state changes
+        this.audioContext.addEventListener('statechange', () => {
+          console.log('AudioContext state changed to:', this.audioContext.state)
+          if (this.audioContext.state === 'suspended') {
+            this.isContextUnlocked = false
+          }
+        })
       }
       return this.audioContext
     },
 
-    // Set the volume level (0.0 to 1.0) with logarithmic taper and smooth transition
+    // Enhanced volume setting with mobile considerations
     setVolume(value, transitionTime = null) {
-      // Use specified transition time or default
       const transition = transitionTime !== null ? transitionTime : this.transitionTime
-
-      // Ensure volume is between 0 and 1
       const linearVolume = Math.max(0, Math.min(1, value))
       this.volume = linearVolume
 
-      // Apply logarithmic taper to the volume
-      // This formula creates a logarithmic curve that sounds more natural
-      // to human ears than a linear volume control
       let taperedVolume = 0
-
       if (linearVolume > 0) {
-        // Using an exponential curve with base 2
-        // This provides a natural-sounding volume curve
         taperedVolume = Math.pow(linearVolume, 3)
       }
 
-      // Update the mixer gain if it exists
       if (this.mixer && this.audioContext) {
         const now = this.audioContext.currentTime
-
-        // Get the gain parameter
         const gainParam = this.mixer.gain
 
-        // Schedule the volume change with a smooth ramp
         gainParam.cancelScheduledValues(now)
 
-        // If transition time is 0, change immediately
         if (transition <= 0) {
           gainParam.setValueAtTime(taperedVolume, now)
         } else {
-          // Otherwise, smooth transition over specified time
-          // First set current value to avoid clicks
           gainParam.setValueAtTime(gainParam.value, now)
-          // Then schedule the ramp to the new value
-          gainParam.exponentialRampToValueAtTime(
-            Math.max(0.0001, taperedVolume), // Ensure we don't go to exactly 0 for exponential ramp
-            now + transition,
-          )
-
-          // If we need to go all the way to 0, add a linear ramp for the final bit
-          if (taperedVolume === 0) {
-            gainParam.linearRampToValueAtTime(0, now + transition + 0.01)
+          if (taperedVolume > 0) {
+            gainParam.exponentialRampToValueAtTime(
+              Math.max(0.0001, taperedVolume),
+              now + transition,
+            )
+          } else {
+            gainParam.linearRampToValueAtTime(0, now + transition)
           }
         }
       }
@@ -99,7 +160,6 @@ export const useAudioStore = defineStore('audio', {
       return linearVolume
     },
 
-    // Set the transition time for volume changes (in seconds)
     setTransitionTime(seconds) {
       this.transitionTime = Math.max(0, seconds)
       return this.transitionTime
@@ -109,20 +169,16 @@ export const useAudioStore = defineStore('audio', {
       return this.analyser || null
     },
 
-    // Helper function to determine if a URL is a video file
     isVideoFile(url) {
       const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv']
       return videoExtensions.some((ext) => url.toLowerCase().includes(ext))
     },
 
-    // Helper function to normalize URLs for consistent lookup
     normalizeUrl(url) {
-      // Convert full URLs to relative paths for consistent storage
       try {
         const urlObj = new URL(url)
         return urlObj.pathname
       } catch {
-        // If it's already a relative path, return as-is
         return url
       }
     },
@@ -147,14 +203,12 @@ export const useAudioStore = defineStore('audio', {
       }
     },
 
-    // Fetch video projects and add them to trackList like regular tracks
     async fetchVideos() {
       this.isLoading = true
       this.error = null
 
       try {
         const response = await fetch('/projects.json')
-
         if (!response.ok) {
           throw new Error('Failed to load projects from JSON')
         }
@@ -162,21 +216,14 @@ export const useAudioStore = defineStore('audio', {
         const data = await response.json()
         const videos = data.projects || []
 
-        // Process videos to match the same structure as audio tracks
-        const processedVideos = videos.map((video) => {
-          return {
-            name: video.name,
-            url: video.video,
-            type: 'video', // Add type to distinguish from audio
-          }
-        })
+        const processedVideos = videos.map((video) => ({
+          name: video.name,
+          url: video.video,
+          type: 'video',
+        }))
 
-        // Add videos to trackList (like audio tracks)
         this.trackList = [...this.trackList, ...processedVideos]
-
-        // Preload the videos like we do with audio tracks
         await this.preloadTracks()
-
         this.isLoading = false
         return processedVideos
       } catch (err) {
@@ -193,10 +240,8 @@ export const useAudioStore = defineStore('audio', {
       for (const track of this.trackList) {
         try {
           if (this.isVideoFile(track.url)) {
-            // Handle video files
             await this.loadVideoAudio(track.url)
           } else {
-            // Handle audio files
             const response = await fetch(track.url)
             const arrayBuffer = await response.arrayBuffer()
             const buffer = await this.audioContext.decodeAudioData(arrayBuffer)
@@ -209,77 +254,104 @@ export const useAudioStore = defineStore('audio', {
       }
     },
 
-    // Load a single video and set up its audio source
+    // Enhanced video loading for mobile
     async loadVideoAudio(url) {
       return new Promise((resolve, reject) => {
-        // Normalize the URL for consistent storage
         const normalizedUrl = this.normalizeUrl(url)
-
-        // Create a video element
         const video = document.createElement('video')
+
+        // Mobile-specific video settings
         video.crossOrigin = 'anonymous'
         video.preload = 'metadata'
+        video.playsInline = true // Critical for iOS
+        video.muted = false // Don't mute initially
+        video.controls = false
 
-        // Set up video with the original URL
+        // iOS-specific settings
+        if (this.isMobile) {
+          video.setAttribute('webkit-playsinline', 'true')
+          video.setAttribute('playsinline', 'true')
+        }
+
         video.src = url
 
-        // Create media element source
-        const videoSource = this.audioContext.createMediaElementSource(video)
+        // Create audio source - but don't connect yet on mobile
+        let videoSource = null
+        try {
+          if (this.audioContext) {
+            videoSource = this.audioContext.createMediaElementSource(video)
+          }
+        } catch (err) {
+          console.warn('Could not create media element source:', err)
+        }
 
-        // Store references using normalized URL
         this.videoElements[normalizedUrl] = {
           element: video,
           source: videoSource,
           connected: false,
-          originalUrl: url, // Store original URL for reference
+          originalUrl: url,
         }
 
-        // Listen for when it's loaded enough
         video.addEventListener('loadedmetadata', () => {
           console.log(`Video metadata loaded: ${normalizedUrl}`)
           resolve(normalizedUrl)
         })
 
-        // Handle errors
         video.addEventListener('error', (err) => {
           console.error(`Error loading video ${normalizedUrl}`, err)
           reject(err)
         })
 
-        // Add to DOM but hide it (needed for some browsers)
+        // Add to DOM but keep hidden
         video.style.display = 'none'
         video.style.position = 'absolute'
         video.style.top = '-9999px'
+        video.style.left = '-9999px'
+        video.style.width = '1px'
+        video.style.height = '1px'
         document.body.appendChild(video)
 
-        // Start loading
         video.load()
       })
     },
 
-    playTrack(url) {
+    // Enhanced play methods with mobile support
+    async playTrack(url) {
+      // Ensure audio context is ready
       if (!this.audioContext) this.initAudioContext()
+
+      // Try to unlock context if needed
+      if (this.isMobile && !this.isContextUnlocked) {
+        const unlocked = await this.unlockAudioContext()
+        if (!unlocked) {
+          console.warn('Audio context not unlocked - audio may not play')
+        }
+      }
 
       // Resume context if suspended
       if (this.audioContext.state === 'suspended') {
-        this.audioContext.resume()
+        try {
+          await this.audioContext.resume()
+        } catch (err) {
+          console.error('Failed to resume audio context:', err)
+        }
       }
 
-      // Check if it's a video file
       if (this.isVideoFile(url)) {
         return this.playVideoAudio(url)
       }
 
-      // Handle regular audio files
       const buffer = this.audioBuffers[url]
-      if (!buffer) return
+      if (!buffer) {
+        console.error('Audio buffer not found for:', url)
+        return
+      }
 
       const source = this.audioContext.createBufferSource()
       source.buffer = buffer
       source.connect(this.mixer)
       source.start()
 
-      // Add to active sources with proper tracking
       this.activeSources.set(url, {
         source,
         type: 'audio',
@@ -287,49 +359,49 @@ export const useAudioStore = defineStore('audio', {
         isLooping: false,
       })
 
-      // Clean up when track ends
       source.onended = () => {
         this.activeSources.delete(url)
       }
 
-      // Mark that we've played a track
       this.hasPlayedFirstTrack = true
     },
 
-    playTrackLoop(url) {
+    async playTrackLoop(url) {
       if (!this.audioContext) this.initAudioContext()
 
-      // Resume context if suspended
-      if (this.audioContext.state === 'suspended') {
-        this.audioContext.resume()
+      if (this.isMobile && !this.isContextUnlocked) {
+        const unlocked = await this.unlockAudioContext()
+        if (!unlocked) {
+          console.warn('Audio context not unlocked - audio may not play')
+        }
       }
 
-      // Check if this track is already looping
+      if (this.audioContext.state === 'suspended') {
+        try {
+          await this.audioContext.resume()
+        } catch (err) {
+          console.error('Failed to resume audio context:', err)
+        }
+      }
+
       if (this.loopingTracks[url]) {
         console.log(`Track ${url} is already looping`)
         return
       }
 
-      // Check if it's a video file
       if (this.isVideoFile(url)) {
         return this.playVideoAudioLoop(url)
       }
 
-      // Handle regular audio files
       const buffer = this.audioBuffers[url]
       if (!buffer) return
 
       const source = this.audioContext.createBufferSource()
       source.buffer = buffer
       source.connect(this.mixer)
-
-      // Enable looping on the buffer source
       source.loop = true
-
-      // Start the source
       source.start()
 
-      // Add to active sources and looping tracks
       this.activeSources.set(url, {
         source,
         type: 'audio',
@@ -338,21 +410,17 @@ export const useAudioStore = defineStore('audio', {
       })
 
       this.loopingTracks[url] = source
-
-      // Mark that we've played a track
       this.hasPlayedFirstTrack = true
 
       return source
     },
 
-    // Play video audio through the audio context
-    playVideoAudio(url) {
-      // Normalize URL for lookup
+    // Enhanced video playback for mobile
+    async playVideoAudio(url) {
       const normalizedUrl = this.normalizeUrl(url)
 
       if (!this.videoElements[normalizedUrl]) {
         console.error(`Video not loaded: ${normalizedUrl}`)
-        console.log('Available videos:', Object.keys(this.videoElements))
         return
       }
 
@@ -360,39 +428,45 @@ export const useAudioStore = defineStore('audio', {
       const video = videoData.element
       const source = videoData.source
 
-      // Connect source to mixer if not already connected
-      if (!videoData.connected) {
-        source.connect(this.mixer)
-        videoData.connected = true
+      // Connect source to mixer if available and not connected
+      if (source && !videoData.connected && this.mixer) {
+        try {
+          source.connect(this.mixer)
+          videoData.connected = true
+        } catch (err) {
+          console.warn('Could not connect video source to mixer:', err)
+        }
       }
 
-      // Play the video (which plays the audio)
-      video.play().catch((err) => {
+      try {
+        // Ensure video is ready for mobile
+        if (this.isMobile) {
+          video.muted = false
+          video.playsInline = true
+        }
+
+        await video.play()
+
+        this.activeSources.set(normalizedUrl, {
+          source: video,
+          type: 'video',
+          url: normalizedUrl,
+          isLooping: false,
+        })
+
+        video.onended = () => {
+          this.activeSources.delete(normalizedUrl)
+        }
+
+        this.hasPlayedFirstTrack = true
+        return videoData
+      } catch (err) {
         console.error('Error playing video:', normalizedUrl, err)
-      })
-
-      // Add to active sources using normalized URL
-      this.activeSources.set(normalizedUrl, {
-        source: video,
-        type: 'video',
-        url: normalizedUrl,
-        isLooping: false,
-      })
-
-      // Clean up when video ends
-      video.onended = () => {
-        this.activeSources.delete(normalizedUrl)
+        throw err
       }
-
-      // Mark that we've played a track
-      this.hasPlayedFirstTrack = true
-
-      return videoData
     },
 
-    // Play video audio in loop
-    playVideoAudioLoop(url) {
-      // Normalize URL for lookup
+    async playVideoAudioLoop(url) {
       const normalizedUrl = this.normalizeUrl(url)
 
       if (!this.videoElements[normalizedUrl]) {
@@ -400,7 +474,6 @@ export const useAudioStore = defineStore('audio', {
         return
       }
 
-      // Check if this video is already looping
       if (this.loopingTracks[normalizedUrl]) {
         console.log(`Video ${normalizedUrl} is already looping`)
         return
@@ -410,38 +483,43 @@ export const useAudioStore = defineStore('audio', {
       const video = videoData.element
       const source = videoData.source
 
-      // Connect source to mixer if not already connected
-      if (!videoData.connected) {
-        source.connect(this.mixer)
-        videoData.connected = true
+      if (source && !videoData.connected && this.mixer) {
+        try {
+          source.connect(this.mixer)
+          videoData.connected = true
+        } catch (err) {
+          console.warn('Could not connect video source to mixer:', err)
+        }
       }
 
-      // Set up looping
-      video.loop = true
+      try {
+        video.loop = true
 
-      // Play the video
-      video.play().catch((err) => {
-        console.error('Error playing video:', normalizedUrl, err)
-      })
+        if (this.isMobile) {
+          video.muted = false
+          video.playsInline = true
+        }
 
-      // Add to active sources and looping tracks using normalized URL
-      this.activeSources.set(normalizedUrl, {
-        source: video,
-        type: 'video',
-        url: normalizedUrl,
-        isLooping: true,
-      })
+        await video.play()
 
-      this.loopingTracks[normalizedUrl] = video
+        this.activeSources.set(normalizedUrl, {
+          source: video,
+          type: 'video',
+          url: normalizedUrl,
+          isLooping: true,
+        })
 
-      // Mark that we've played a track
-      this.hasPlayedFirstTrack = true
+        this.loopingTracks[normalizedUrl] = video
+        this.hasPlayedFirstTrack = true
 
-      return videoData
+        return videoData
+      } catch (err) {
+        console.error('Error playing video loop:', normalizedUrl, err)
+        throw err
+      }
     },
 
     pauseTrack(url) {
-      // Normalize URL for consistent lookup
       const normalizedUrl = this.normalizeUrl(url)
       const activeSource = this.activeSources.get(normalizedUrl)
 
@@ -449,17 +527,13 @@ export const useAudioStore = defineStore('audio', {
 
       try {
         if (activeSource.type === 'video') {
-          // Handle video pause
           activeSource.source.pause()
         } else {
-          // Handle audio pause (stop for buffer sources)
           activeSource.source.stop()
         }
 
-        // Remove from active sources
         this.activeSources.delete(normalizedUrl)
 
-        // Remove from looping tracks if it was looping
         if (this.loopingTracks[normalizedUrl]) {
           delete this.loopingTracks[normalizedUrl]
         }
@@ -472,7 +546,6 @@ export const useAudioStore = defineStore('audio', {
     },
 
     stopTrack(url) {
-      // Normalize URL for consistent lookup
       const normalizedUrl = this.normalizeUrl(url)
       const activeSource = this.activeSources.get(normalizedUrl)
 
@@ -480,19 +553,15 @@ export const useAudioStore = defineStore('audio', {
 
       try {
         if (activeSource.type === 'video') {
-          // Handle video stop
           activeSource.source.pause()
           activeSource.source.currentTime = 0
           activeSource.source.loop = false
         } else {
-          // Handle audio stop
           activeSource.source.stop()
         }
 
-        // Remove from active sources
         this.activeSources.delete(normalizedUrl)
 
-        // Remove from looping tracks if it was looping
         if (this.loopingTracks[normalizedUrl]) {
           delete this.loopingTracks[normalizedUrl]
         }
@@ -505,7 +574,6 @@ export const useAudioStore = defineStore('audio', {
     },
 
     stopLoopingTrack(url) {
-      // Normalize URL for consistent lookup
       const normalizedUrl = this.normalizeUrl(url)
       const loopingSource = this.loopingTracks[normalizedUrl]
 
@@ -513,16 +581,13 @@ export const useAudioStore = defineStore('audio', {
 
       try {
         if (this.isVideoFile(normalizedUrl)) {
-          // Handle video
           loopingSource.pause()
           loopingSource.currentTime = 0
           loopingSource.loop = false
         } else {
-          // Handle audio
           loopingSource.stop()
         }
 
-        // Remove from active sources and looping tracks
         this.activeSources.delete(normalizedUrl)
         delete this.loopingTracks[normalizedUrl]
 
@@ -533,7 +598,7 @@ export const useAudioStore = defineStore('audio', {
       }
     },
 
-    // Legacy methods for backward compatibility
+    // Legacy methods
     pauseVideoAudio(url) {
       return this.pauseTrack(url)
     },
@@ -543,7 +608,6 @@ export const useAudioStore = defineStore('audio', {
     },
 
     cleanup() {
-      // Stop all active sources
       this.activeSources.forEach((sourceData, url) => {
         try {
           if (sourceData.type === 'video') {
@@ -557,13 +621,9 @@ export const useAudioStore = defineStore('audio', {
         }
       })
 
-      // Clear the active sources
       this.activeSources.clear()
-
-      // Clear looping tracks
       this.loopingTracks = {}
 
-      // Close audio context if supported
       if (this.audioContext && typeof this.audioContext.close === 'function') {
         this.audioContext.close()
         this.audioContext = null
@@ -571,31 +631,30 @@ export const useAudioStore = defineStore('audio', {
         this.mixer = null
       }
 
-      // Clean up video elements
       Object.values(this.videoElements).forEach((videoData) => {
         const video = videoData.element
-
-        // Pause and remove event listeners
         video.pause()
         video.src = ''
 
-        // Remove from DOM if it was added
         if (video.parentNode) {
           video.parentNode.removeChild(video)
         }
 
-        // Disconnect source if connected
         if (videoData.source) {
-          videoData.source.disconnect()
+          try {
+            videoData.source.disconnect()
+          } catch (err) {
+            console.warn('Error disconnecting video source:', err)
+          }
         }
       })
 
       this.videoElements = {}
+      this.isContextUnlocked = false
+      this.needsUserGesture = true
     },
 
-    // Helper to check if video is currently playing
     isVideoPlaying(url) {
-      // Normalize URL for consistent lookup
       const normalizedUrl = this.normalizeUrl(url)
       const activeSource = this.activeSources.get(normalizedUrl)
 
@@ -605,14 +664,12 @@ export const useAudioStore = defineStore('audio', {
       return !video.paused && !video.ended && video.readyState > 2
     },
 
-    // Helper function to check if a track is currently looping
     isTrackLooping(url) {
       const normalizedUrl = this.normalizeUrl(url)
       return !!this.loopingTracks[normalizedUrl]
     },
-    // Function to stop all sounds immediately
+
     stopAllSounds() {
-      // Stop all active sources
       this.activeSources.forEach((sourceData, url) => {
         try {
           if (sourceData.type === 'video') {
@@ -627,33 +684,27 @@ export const useAudioStore = defineStore('audio', {
         }
       })
 
-      // Clear collections
       this.activeSources.clear()
       this.loopingTracks = {}
     },
 
-    // Function to stop all videos only
     stopAllVideos() {
       const videosToStop = []
 
-      // Find all active video sources
       this.activeSources.forEach((sourceData, url) => {
         if (sourceData.type === 'video') {
           videosToStop.push({ url, sourceData })
         }
       })
 
-      // Stop each video
       videosToStop.forEach(({ url, sourceData }) => {
         try {
           sourceData.source.pause()
           sourceData.source.currentTime = 0
           sourceData.source.loop = false
 
-          // Remove from active sources
           this.activeSources.delete(url)
 
-          // Remove from looping tracks if it was looping
           if (this.loopingTracks[url]) {
             delete this.loopingTracks[url]
           }
@@ -662,7 +713,7 @@ export const useAudioStore = defineStore('audio', {
         }
       })
 
-      return videosToStop.length // Return count of videos stopped
+      return videosToStop.length
     },
   },
 })

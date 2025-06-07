@@ -16,8 +16,8 @@ defineProps({
           <slot>
             <h2>It would be sound if you enabled audio</h2>
             <p>
-              This site showcases our sound design. If you want to browse this site in silence we
-              don’t mind if you mute our hard work,
+              This site features our sound design. While we'd love for you to experience the audio,
+              we completely understand if you prefer to browse in silence.
             </p>
           </slot>
         </div>
@@ -79,6 +79,9 @@ defineProps({
       background-color: var(--color-text);
       color: var(--color-background);
     }
+  }
+  @media screen and (min-width: 768px) {
+    padding: 2rem 4rem;
   }
 }
 </style>
