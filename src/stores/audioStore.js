@@ -132,7 +132,7 @@ export const useAudioStore = defineStore('audio', {
       this.error = null
 
       try {
-        const response = await fetch('./src/sounds.json')
+        const response = await fetch('/sounds.json')
         if (!response.ok) {
           throw new Error('Failed to load track list')
         }
@@ -153,7 +153,7 @@ export const useAudioStore = defineStore('audio', {
       this.error = null
 
       try {
-        const response = await fetch('./src/projects.json')
+        const response = await fetch('/projects.json')
 
         if (!response.ok) {
           throw new Error('Failed to load projects from JSON')

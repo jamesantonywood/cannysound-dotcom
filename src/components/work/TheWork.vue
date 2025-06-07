@@ -5,7 +5,7 @@ import TheProject from './TheProject.vue'
 
 const projects = ref([])
 onMounted(() => {
-  axios.get('/src/projects.json').then((r) => {
+  axios.get('/projects.json').then((r) => {
     projects.value = r.data.projects
   })
 })
