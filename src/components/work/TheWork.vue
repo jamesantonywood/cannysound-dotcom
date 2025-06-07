@@ -5,15 +5,15 @@ import TheProject from './TheProject.vue'
 
 const projects = ref([])
 onMounted(() => {
-  axios.get('http://localhost:1337/api/projects?populate=*').then((r) => {
-    projects.value = r.data.data
+  axios.get('/src/projects.json').then((r) => {
+    projects.value = r.data.projects
   })
 })
 </script>
 
 <template>
   <div class="projects" ref="root">
-    <TheProject v-for="p in projects" :class="`project ${p.id}`" :key="p.id" :p="p" />
+    <TheProject v-for="p in projects" :class="`project ${p.name}`" :key="p.name" :p="p" />
   </div>
 </template>
 

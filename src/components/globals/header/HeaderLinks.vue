@@ -8,21 +8,44 @@
 
 <style>
 .header-links {
-  display: none;
+  &:first-child {
+    display: none;
+  }
+  flex-direction: row-reverse;
+  /* justify-content: flex-start; */
+  .header-link {
+    display: none;
+    &.mobile-menu {
+      display: flex;
+    }
+  }
+  display: flex;
   align-items: center;
   flex: 1 500px;
+  gap: 0.75rem;
 
   a {
     font-size: 1.625rem;
   }
   &:last-child {
-    justify-content: flex-end;
+    /* justify-content: flex-end; */
   }
 }
 @media screen and (min-width: 768px) {
   .header-links {
-    display: flex;
-    gap: 0.75rem;
+    &:first-child {
+      display: flex;
+    }
+    flex-direction: row;
+    .header-link {
+      display: flex;
+      &.mobile-menu {
+        display: none;
+      }
+    }
+    &:last-child {
+      justify-content: flex-end;
+    }
   }
 }
 

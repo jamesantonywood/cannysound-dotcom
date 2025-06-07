@@ -1,10 +1,21 @@
 <script setup>
 import { useThemeStore } from '@/stores/themeStore'
+import { useAudioStore } from '@/stores/audioStore'
 const themeStore = useThemeStore()
+const audioStore = useAudioStore()
+const sounds = {
+  light: './src/assets/audio/LightMode.mp3',
+  dark: './src/assets/audio/DarkMode.mp3',
+}
+
+const handleClick = () => {
+  themeStore.toggleTheme()
+  audioStore.playTrack(sounds[themeStore.currentTheme])
+}
 </script>
 
 <template>
-  <div class="icon-button theme-switch" @click="themeStore.toggleTheme()">
+  <div class="icon-button theme-switch" @click="handleClick">
     <div class="icon" v-if="themeStore.currentTheme === 'dark'">
       <svg
         class="dark"

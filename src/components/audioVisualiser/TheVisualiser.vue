@@ -5,8 +5,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, defineProps } from 'vue'
 import { useAudioStore } from '@/stores/audioStore'
+
+const props = defineProps({
+  isMuted: {
+    type: Boolean,
+    default: false,
+  },
+})
 
 // Access the audio store
 const audioStore = useAudioStore()
@@ -75,7 +82,7 @@ const drawFFTWaveform = (ctx, analyser, width, height, fgColor) => {
     const v = (dataArray[i] - 127.5) / 127.5
 
     // Map the -1 to 1 range to the canvas height
-    const y = height * (1 - v * 0.8) // 0.1 is the amplitude
+    const y = height * (1 - v * 1.5) // 0.1 is the amplitude
     const x = i * sliceWidth
 
     if (i === 0) {
@@ -129,7 +136,9 @@ onMounted(async () => {
   // Add resize event listener
   window.addEventListener('resize', handleResize)
 
-  audioStore.playTrackLoop('./src/assets/audio/ambient-jazz.mp3')
+  if (!props.isMuted) {
+    audioStore.playTrackLoop('./src/assets/audio/background-ambience.mp3')
+  }
 })
 
 onBeforeUnmount(() => {

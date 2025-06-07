@@ -146,7 +146,7 @@ header {
   justify-content: space-between;
   text-align: center;
   padding: 1rem;
-  z-index: 10;
+  z-index: 1001;
   @media screen and (min-width: 1024px) {
     padding: 2rem;
   }

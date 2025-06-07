@@ -9,27 +9,27 @@ import TheHeader from '@/components/globals/header/TheHeader.vue'
 import TheVisualiser from './components/audioVisualiser/TheVisualiser.vue'
 import TheModal from './components/globals/TheModal.vue'
 
+const audioStore = useAudioStore()
 const themeStore = useThemeStore()
+
 themeStore.initTheme()
 
 let showModal = ref(true)
-let isMuted = ref(false)
 
 const closeModal = (status) => {
   console.log(status)
   if (status === 'muted') {
-    isMuted.value = true
+    audioStore.isMuted = true
     audioStore.setVolume(0.0, 0.0)
     audioStore.stopAllSounds()
   } else {
-    isMuted.value = false
+    audioStore.isMuted = false
     audioStore.setVolume(1.0, 0.0)
   }
 
   showModal.value = false
 }
 
-const audioStore = useAudioStore()
 onMounted(async () => {
   // Initialize Lenis
   new Lenis({
@@ -38,9 +38,9 @@ onMounted(async () => {
   // Initialize audio context
   audioStore.initAudioContext()
 })
-onUnmounted(() => {
-  themeStore.cleanup()
-})
+// onUnmounted(() => {
+//   themeStore.cleanup()
+// })
 </script>
 
 <template>
@@ -48,7 +48,7 @@ onUnmounted(() => {
   <div :class="themeStore.isDarkTheme ? 'dark-theme' : 'light-theme'">
     <div class="texture"></div>
     <div v-if="!showModal">
-      <TheVisualiser />
+      <TheVisualiser :isMuted="audioStore.isMuted" />
       <TheHeader />
       <RouterView v-slot="{ Component }">
         <Transition name="fade">

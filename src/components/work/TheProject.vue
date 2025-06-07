@@ -14,7 +14,7 @@ const videoRef = ref(null)
 const playbackButton = ref(null)
 
 const isPlaying = ref(false)
-const isMuted = ref(true)
+const isMuted = audio.isMuted
 
 const isVisible = shallowRef(false)
 
@@ -31,7 +31,7 @@ function onIntersectionObserver([entry]) {
     entry.target.classList.remove('is-visible')
     videoRef.value.pause()
     videoRef.value.currentTime = 0
-    audio.stopVideoAudio(videoRef.value.src)
+    audio.stopTrack(videoRef.value.src)
     isPlaying.value = false
   }
 }
@@ -49,7 +49,7 @@ const playVideo = () => {
   if (videoRef.value.paused === false) {
     videoRef.value.pause()
     isPlaying.value = false
-    audio.pauseVideoAudio(videoRef.value.src)
+    audio.pauseTrack(videoRef.value.src)
     return
   }
   // TODO: handle play and pause better
@@ -61,23 +61,33 @@ const playVideo = () => {
   }
   isPlaying.value = true
   videoRef.value.play()
-  audio.playVideoAudio(videoRef.value.src)
+  audio.playTrack(videoRef.value.src)
 }
 
 const handlePause = () => {
   if (!videoRef.value) return
   if (videoRef.value.paused) {
     isPlaying.value = false
-    audio.pauseVideoAudio(videoRef.value.src)
+    audio.pauseTrack(videoRef.value.src)
+    if (!audio.isMuted) {
+      audio.setVolume(0.5, 0.0)
+      audio.playTrackLoop('./src/assets/audio/background-ambience.mp3')
+    }
   }
+}
+
+const getDesctiption = (description) => {
+  const t = document.createElement('template')
+  t.innerHTML = description
+  return t.content.textContent
 }
 
 const restartVideo = () => {
   if (!videoRef.value) return
-  audio.stopVideoAudio(videoRef.value.src)
+  audio.stopTrack(videoRef.value.src)
   videoRef.value.currentTime = 0.0
   if (videoRef.value.paused === false) {
-    audio.playVideoAudio(videoRef.value.src)
+    audio.playTrack(videoRef.value.src)
   }
 }
 
@@ -85,11 +95,11 @@ const muteVideo = () => {
   if (!videoRef.value) return
   videoRef.value.muted = !videoRef.value.muted
   if (videoRef.value.muted) {
-    isMuted.value = true
+    audio.isMuted = true
     audio.setVolume(0.0, 0.0)
   } else {
     audio.setVolume(1.0, 0.0)
-    isMuted.value = false
+    audio.isMuted = false
   }
 }
 
@@ -108,9 +118,12 @@ const openFullscreen = () => {
 
 const handleVideoEnd = () => {
   videoRef.value.currentTime = 0.0
-  audio.stopVideoAudio(videoRef.value.src)
+  audio.stopTrack(videoRef.value.src)
   isPlaying.value = false
-
+  if (!audio.isMuted) {
+    audio.setVolume(0.5, 0.0)
+    audio.playTrackLoop('./src/assets/audio/background-ambience.mp3')
+  }
   console.log('ended!')
 }
 
@@ -130,22 +143,23 @@ onMounted(() => {
     ]"
   >
     <div class="content">
-      <h2>{{ p.title }}</h2>
-      <p>{{ p.description[0].children[0].text }}</p>
+      <h2>{{ p.name }}</h2>
+      <p>
+        {{ getDesctiption(p.description) }}
+      </p>
       <div class="meta">
-        <div class="meta-pill" v-for="c in p.categories" :key="c.id">{{ c.name }}</div>
-        <div class="meta-pill">{{ p.completed }}</div>
+        <div class="meta-pill" v-for="t in p.tags" :key="t">{{ t }}</div>
       </div>
     </div>
     <div class="media">
       <div class="video">
         <video
           ref="videoRef"
-          :src="'http://localhost:1337' + p.video.url"
+          :src="p.video"
           playsinline="true"
           @ended="handleVideoEnd"
           @pause="handlePause"
-          :muted="isMuted"
+          :muted="audio.isMuted"
         ></video>
         <div class="video-controls">
           <div class="control" @click="playVideo" ref="playbackButton">
@@ -194,7 +208,7 @@ onMounted(() => {
               xmlns="http://www.w3.org/2000/svg"
             >
               <path
-                v-if="!isMuted"
+                v-if="!audio.isMuted"
                 d="M11.1531 8C11.1531 6.89062 10.475 5.94063 9.5125 5.54063L9 6.77187C9.48125 6.97187 9.81875 7.44688 9.81875 8.00313C9.81875 8.55625 9.48125 9.03125 9 9.23438L9.5125 10.4656C10.475 10.0594 11.1531 9.10938 11.1531 8ZM10.5375 3.07812L10.025 4.30937C11.4719 4.9125 12.4875 6.3375 12.4875 8C12.4875 9.66562 11.4719 11.0875 10.025 11.6906L10.5375 12.9219C12.4656 12.1187 13.8187 10.2188 13.8187 8C13.8187 5.78125 12.4656 3.88125 10.5375 3.07812Z"
               />
               <path d="M0 4.66563V11.3313H2.66563L7.33125 16V0L2.66563 4.66563H0Z" />
@@ -270,6 +284,10 @@ onMounted(() => {
       justify-content: space-between;
       padding: 8px;
       video {
+        overflow: hidden;
+        background: var(--force-black);
+        /* padding: 0.5rem; */
+        border-radius: 10px;
         overflow: hidden;
         /* width: 100%; */
         height: 100%;

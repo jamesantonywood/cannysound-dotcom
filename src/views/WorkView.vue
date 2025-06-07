@@ -13,13 +13,17 @@ const audio = useAudioStore()
 
 // })
 onMounted(async () => {
-  if (audio.volume !== 0) {
-    audio.setVolume(0.3, 2.0)
+  if (!audio.isMuted) {
+    audio.setVolume(0.5, 2.0)
   }
-  const videos = await audio.fetchVideosFromStrapi()
+  const videos = await audio.fetchVideos()
 })
 onUnmounted(() => {
-  // audio.setVolume(1.0, 2.0)
+  audio.stopAllVideos()
+  audio.playTrackLoop('./src/assets/audio/background-ambience.mp3')
+  if (!audio.isMuted) {
+    audio.setVolume(1.0, 2.0)
+  }
 })
 </script>
 

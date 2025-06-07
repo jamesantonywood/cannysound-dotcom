@@ -1,11 +1,15 @@
 {
   "tracks": [
-    { "name": "ambient-jazz", "url": "./src/assets/audio/ambient-jazz.mp3" },
-    { "name": "test-audio", "url": "./src/assets/audio/test.mp3" },
-    { "name": "vinyl-texture", "url": "./src/assets/audio/vinyl-textures.mp3" },
-    { "name": "ding", "url": "./src/assets/audio/ding.mp3" },
-    { "name": "pop-up", "url": "./src/assets/audio/pop-up.mp3" },
-    { "name": "click", "url": "./src/assets/audio/click.mp3" },
-    { "name": "zoom", "url": "./src/assets/audio/zoom.wav" }
+    { "name": "background-ambience", "url": "./src/assets/audio/background-ambience.mp3" },
+    { "name": "click-1", "url": "./src/assets/audio/Click1.mp3" },
+    { "name": "click-2", "url": "./src/assets/audio/Click2.mp3" },
+    { "name": "dark-mode", "url": "./src/assets/audio/DarkMode.mp3" },
+    { "name": "light-mode", "url": "./src/assets/audio/LightMode.mp3" },
+    { "name": "gotaproject", "url": "./src/assets/audio/GotaProject.mp3" },
+    { "name": "scratch", "url": "./src/assets/audio/scratch.mp3" },
+    { "name": "screenshot", "url": "./src/assets/audio/screenshot.mp3" },
+    { "name": "hover_1", "url": "./src/assets/audio/hover_1.mp3" },
+    { "name": "hover_2", "url": "./src/assets/audio/hover_2.mp3" },
+    { "name": "hover_3", "url": "./src/assets/audio/hover_3.mp3" }
   ]
 }

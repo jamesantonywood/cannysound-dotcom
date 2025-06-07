@@ -9,7 +9,7 @@ export const useAudioStore = defineStore('audio', {
     analyser: null,
     mixer: null,
     audioBuffers: {},
-    activeSources: [],
+    activeSources: new Map(), // Changed to Map for better tracking
     isVisualizationRunning: false,
     hasPlayedFirstTrack: false,
     trackList: [],
@@ -20,14 +20,12 @@ export const useAudioStore = defineStore('audio', {
     transitionTime: 1.0, // Default transition time in seconds
 
     videoElements: {}, // Store references to video elements
-    videoBuffers: {}, // Store audio data from videos
-    strapiBaseUrl: 'http://localhost:1337', // Adjust to your Strapi URL
   }),
 
   // Getters
   getters: {
     hasAudioContext: (state) => !!state.audioContext,
-    isPlaying: (state) => state.activeSources.length > 0,
+    isPlaying: (state) => state.activeSources.size > 0,
     firstTrack: (state) => state.trackList[0] || null,
     currentVolume: (state) => state.volume,
   },
@@ -107,6 +105,28 @@ export const useAudioStore = defineStore('audio', {
       return this.transitionTime
     },
 
+    getAnalyser() {
+      return this.analyser || null
+    },
+
+    // Helper function to determine if a URL is a video file
+    isVideoFile(url) {
+      const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv']
+      return videoExtensions.some((ext) => url.toLowerCase().includes(ext))
+    },
+
+    // Helper function to normalize URLs for consistent lookup
+    normalizeUrl(url) {
+      // Convert full URLs to relative paths for consistent storage
+      try {
+        const urlObj = new URL(url)
+        return urlObj.pathname
+      } catch {
+        // If it's already a relative path, return as-is
+        return url
+      }
+    },
+
     async fetchTrackList() {
       this.isLoading = true
       this.error = null
@@ -127,20 +147,114 @@ export const useAudioStore = defineStore('audio', {
       }
     },
 
+    // Fetch video projects and add them to trackList like regular tracks
+    async fetchVideos() {
+      this.isLoading = true
+      this.error = null
+
+      try {
+        const response = await fetch('./src/projects.json')
+
+        if (!response.ok) {
+          throw new Error('Failed to load projects from JSON')
+        }
+
+        const data = await response.json()
+        const videos = data.projects || []
+
+        // Process videos to match the same structure as audio tracks
+        const processedVideos = videos.map((video) => {
+          return {
+            name: video.name,
+            url: video.video,
+            type: 'video', // Add type to distinguish from audio
+          }
+        })
+
+        // Add videos to trackList (like audio tracks)
+        this.trackList = [...this.trackList, ...processedVideos]
+
+        // Preload the videos like we do with audio tracks
+        await this.preloadTracks()
+
+        this.isLoading = false
+        return processedVideos
+      } catch (err) {
+        console.error('Error fetching videos from JSON:', err)
+        this.error = err.message
+        this.isLoading = false
+        return []
+      }
+    },
+
     async preloadTracks() {
       if (!this.audioContext) this.initAudioContext()
 
       for (const track of this.trackList) {
         try {
-          const response = await fetch(track.url)
-          const arrayBuffer = await response.arrayBuffer()
-          const buffer = await this.audioContext.decodeAudioData(arrayBuffer)
-          this.audioBuffers[track.url] = buffer
+          if (this.isVideoFile(track.url)) {
+            // Handle video files
+            await this.loadVideoAudio(track.url)
+          } else {
+            // Handle audio files
+            const response = await fetch(track.url)
+            const arrayBuffer = await response.arrayBuffer()
+            const buffer = await this.audioContext.decodeAudioData(arrayBuffer)
+            this.audioBuffers[track.url] = buffer
+          }
         } catch (err) {
           console.error('Failed to load ' + track.url, err)
-          this.error = err.message || 'Failed to load audio'
+          this.error = err.message || 'Failed to load audio/video'
         }
       }
+    },
+
+    // Load a single video and set up its audio source
+    async loadVideoAudio(url) {
+      return new Promise((resolve, reject) => {
+        // Normalize the URL for consistent storage
+        const normalizedUrl = this.normalizeUrl(url)
+
+        // Create a video element
+        const video = document.createElement('video')
+        video.crossOrigin = 'anonymous'
+        video.preload = 'metadata'
+
+        // Set up video with the original URL
+        video.src = url
+
+        // Create media element source
+        const videoSource = this.audioContext.createMediaElementSource(video)
+
+        // Store references using normalized URL
+        this.videoElements[normalizedUrl] = {
+          element: video,
+          source: videoSource,
+          connected: false,
+          originalUrl: url, // Store original URL for reference
+        }
+
+        // Listen for when it's loaded enough
+        video.addEventListener('loadedmetadata', () => {
+          console.log(`Video metadata loaded: ${normalizedUrl}`)
+          resolve(normalizedUrl)
+        })
+
+        // Handle errors
+        video.addEventListener('error', (err) => {
+          console.error(`Error loading video ${normalizedUrl}`, err)
+          reject(err)
+        })
+
+        // Add to DOM but hide it (needed for some browsers)
+        video.style.display = 'none'
+        video.style.position = 'absolute'
+        video.style.top = '-9999px'
+        document.body.appendChild(video)
+
+        // Start loading
+        video.load()
+      })
     },
 
     playTrack(url) {
@@ -151,6 +265,12 @@ export const useAudioStore = defineStore('audio', {
         this.audioContext.resume()
       }
 
+      // Check if it's a video file
+      if (this.isVideoFile(url)) {
+        return this.playVideoAudio(url)
+      }
+
+      // Handle regular audio files
       const buffer = this.audioBuffers[url]
       if (!buffer) return
 
@@ -159,13 +279,17 @@ export const useAudioStore = defineStore('audio', {
       source.connect(this.mixer)
       source.start()
 
-      // Add to active sources
-      this.activeSources.push(source)
+      // Add to active sources with proper tracking
+      this.activeSources.set(url, {
+        source,
+        type: 'audio',
+        url,
+        isLooping: false,
+      })
 
       // Clean up when track ends
       source.onended = () => {
-        const index = this.activeSources.indexOf(source)
-        if (index !== -1) this.activeSources.splice(index, 1)
+        this.activeSources.delete(url)
       }
 
       // Mark that we've played a track
@@ -180,14 +304,20 @@ export const useAudioStore = defineStore('audio', {
         this.audioContext.resume()
       }
 
-      const buffer = this.audioBuffers[url]
-      if (!buffer) return
-
       // Check if this track is already looping
       if (this.loopingTracks[url]) {
         console.log(`Track ${url} is already looping`)
         return
       }
+
+      // Check if it's a video file
+      if (this.isVideoFile(url)) {
+        return this.playVideoAudioLoop(url)
+      }
+
+      // Handle regular audio files
+      const buffer = this.audioBuffers[url]
+      if (!buffer) return
 
       const source = this.audioContext.createBufferSource()
       source.buffer = buffer
@@ -199,10 +329,14 @@ export const useAudioStore = defineStore('audio', {
       // Start the source
       source.start()
 
-      // Add to active sources
-      this.activeSources.push(source)
+      // Add to active sources and looping tracks
+      this.activeSources.set(url, {
+        source,
+        type: 'audio',
+        url,
+        isLooping: true,
+      })
 
-      // Mark this URL as looping
       this.loopingTracks[url] = source
 
       // Mark that we've played a track
@@ -211,144 +345,18 @@ export const useAudioStore = defineStore('audio', {
       return source
     },
 
-    stopLoopingTrack(url) {
-      const loopingSource = this.loopingTracks[url]
-
-      if (loopingSource) {
-        // Stop the audio
-        loopingSource.stop()
-
-        // Remove from active sources
-        const index = this.activeSources.indexOf(loopingSource)
-        if (index !== -1) this.activeSources.splice(index, 1)
-
-        // Remove from looping tracks
-        delete this.loopingTracks[url]
-
-        return true
-      }
-
-      return false
-    },
-
-    playFirstTrack() {
-      console.log('first track')
-      if (this.hasPlayedFirstTrack) return
-
-      if (this.firstTrack) {
-        this.playTrack(this.firstTrack.url)
-        this.hasPlayedFirstTrack = true
-      }
-    },
-
-    getAnalyser() {
-      return this.analyser
-    },
-
-    // Fetch videos from Strapi
-    async fetchVideosFromStrapi() {
-      this.isLoading = true
-      this.error = null
-
-      try {
-        // Adjust the endpoint based on your Strapi API structure
-        const response = await fetch(`${this.strapiBaseUrl}/api/projects?populate=*`)
-
-        if (!response.ok) {
-          throw new Error('Failed to load videos from Strapi')
-        }
-
-        const data = await response.json()
-        const videos = data.data || []
-
-        // Process videos - this will depend on your Strapi structure
-        const processedVideos = videos.map((video) => {
-          console.log(video)
-          return {
-            id: video.id,
-            // title: video.attributes.title,
-            url: `${this.strapiBaseUrl}${video.video.url}`,
-            // Add other attributes as needed
-          }
-        })
-
-        // Add videos to trackList
-        this.trackList = [...this.trackList, ...processedVideos]
-
-        // Preload the videos
-        await this.preloadVideos(processedVideos)
-
-        this.isLoading = false
-        return processedVideos
-      } catch (err) {
-        console.error('Error fetching videos from Strapi:', err)
-        this.error = err.message
-        this.isLoading = false
-        return []
-      }
-    },
-
-    // Preload videos and extract their audio
-    async preloadVideos(videos) {
-      if (!this.audioContext) this.initAudioContext()
-
-      const loadPromises = videos.map((video) => this.loadVideoAudio(video.url))
-      return Promise.all(loadPromises)
-    },
-
-    // Load a single video and extract its audio
-    async loadVideoAudio(url) {
-      return new Promise((resolve, reject) => {
-        // Create a video element
-        const video = document.createElement('video')
-        video.crossOrigin = 'anonymous' // Important for audio extraction
-
-        // Create media element source
-        const videoSource = this.audioContext.createMediaElementSource(video)
-
-        // Store references
-        this.videoElements[url] = {
-          element: video,
-          source: videoSource,
-        }
-
-        // Set up video
-        video.src = url
-        video.load()
-
-        // Listen for when it's loaded enough to play
-        video.addEventListener('canplaythrough', () => {
-          console.log(`Video loaded: ${url}`)
-          resolve(url)
-        })
-
-        // Handle errors
-        video.addEventListener('error', (err) => {
-          console.error(`Error loading video ${url}`, err)
-          reject(err)
-        })
-
-        // Add to DOM but hide it (needed for some browsers)
-        video.style.display = 'none'
-        document.body.appendChild(video)
-      })
-    },
-
     // Play video audio through the audio context
     playVideoAudio(url) {
-      if (!this.videoElements[url]) {
-        console.error(`Video not loaded: ${url}`)
+      // Normalize URL for lookup
+      const normalizedUrl = this.normalizeUrl(url)
+
+      if (!this.videoElements[normalizedUrl]) {
+        console.error(`Video not loaded: ${normalizedUrl}`)
+        console.log('Available videos:', Object.keys(this.videoElements))
         return
       }
 
-      if (!this.audioContext) this.initAudioContext()
-
-      // Resume context if suspended
-      if (this.audioContext.state === 'suspended') {
-        this.audioContext.resume()
-      }
-
-      const videoData = this.videoElements[url]
+      const videoData = this.videoElements[normalizedUrl]
       const video = videoData.element
       const source = videoData.source
 
@@ -360,18 +368,21 @@ export const useAudioStore = defineStore('audio', {
 
       // Play the video (which plays the audio)
       video.play().catch((err) => {
-        console.error(`Error playing video ${url}`, err)
+        console.error('Error playing video:', normalizedUrl, err)
       })
 
-      // Add to active sources list (for tracking)
-      this.activeSources.push({
+      // Add to active sources using normalized URL
+      this.activeSources.set(normalizedUrl, {
+        source: video,
         type: 'video',
-        url,
-        stop: () => {
-          video.pause()
-          video.currentTime = 0
-        },
+        url: normalizedUrl,
+        isLooping: false,
       })
+
+      // Clean up when video ends
+      video.onended = () => {
+        this.activeSources.delete(normalizedUrl)
+      }
 
       // Mark that we've played a track
       this.hasPlayedFirstTrack = true
@@ -379,58 +390,175 @@ export const useAudioStore = defineStore('audio', {
       return videoData
     },
 
-    isVideoPlaying() {
-      console.log('checking if video is playing')
+    // Play video audio in loop
+    playVideoAudioLoop(url) {
+      // Normalize URL for lookup
+      const normalizedUrl = this.normalizeUrl(url)
+
+      if (!this.videoElements[normalizedUrl]) {
+        console.error(`Video not loaded: ${normalizedUrl}`)
+        return
+      }
+
+      // Check if this video is already looping
+      if (this.loopingTracks[normalizedUrl]) {
+        console.log(`Video ${normalizedUrl} is already looping`)
+        return
+      }
+
+      const videoData = this.videoElements[normalizedUrl]
+      const video = videoData.element
+      const source = videoData.source
+
+      // Connect source to mixer if not already connected
+      if (!videoData.connected) {
+        source.connect(this.mixer)
+        videoData.connected = true
+      }
+
+      // Set up looping
+      video.loop = true
+
+      // Play the video
+      video.play().catch((err) => {
+        console.error('Error playing video:', normalizedUrl, err)
+      })
+
+      // Add to active sources and looping tracks using normalized URL
+      this.activeSources.set(normalizedUrl, {
+        source: video,
+        type: 'video',
+        url: normalizedUrl,
+        isLooping: true,
+      })
+
+      this.loopingTracks[normalizedUrl] = video
+
+      // Mark that we've played a track
+      this.hasPlayedFirstTrack = true
+
+      return videoData
     },
 
+    pauseTrack(url) {
+      // Normalize URL for consistent lookup
+      const normalizedUrl = this.normalizeUrl(url)
+      const activeSource = this.activeSources.get(normalizedUrl)
+
+      if (!activeSource) return false
+
+      try {
+        if (activeSource.type === 'video') {
+          // Handle video pause
+          activeSource.source.pause()
+        } else {
+          // Handle audio pause (stop for buffer sources)
+          activeSource.source.stop()
+        }
+
+        // Remove from active sources
+        this.activeSources.delete(normalizedUrl)
+
+        // Remove from looping tracks if it was looping
+        if (this.loopingTracks[normalizedUrl]) {
+          delete this.loopingTracks[normalizedUrl]
+        }
+
+        return true
+      } catch (err) {
+        console.error('Error pausing track:', normalizedUrl, err)
+        return false
+      }
+    },
+
+    stopTrack(url) {
+      // Normalize URL for consistent lookup
+      const normalizedUrl = this.normalizeUrl(url)
+      const activeSource = this.activeSources.get(normalizedUrl)
+
+      if (!activeSource) return false
+
+      try {
+        if (activeSource.type === 'video') {
+          // Handle video stop
+          activeSource.source.pause()
+          activeSource.source.currentTime = 0
+          activeSource.source.loop = false
+        } else {
+          // Handle audio stop
+          activeSource.source.stop()
+        }
+
+        // Remove from active sources
+        this.activeSources.delete(normalizedUrl)
+
+        // Remove from looping tracks if it was looping
+        if (this.loopingTracks[normalizedUrl]) {
+          delete this.loopingTracks[normalizedUrl]
+        }
+
+        return true
+      } catch (err) {
+        console.error('Error stopping track:', normalizedUrl, err)
+        return false
+      }
+    },
+
+    stopLoopingTrack(url) {
+      // Normalize URL for consistent lookup
+      const normalizedUrl = this.normalizeUrl(url)
+      const loopingSource = this.loopingTracks[normalizedUrl]
+
+      if (!loopingSource) return false
+
+      try {
+        if (this.isVideoFile(normalizedUrl)) {
+          // Handle video
+          loopingSource.pause()
+          loopingSource.currentTime = 0
+          loopingSource.loop = false
+        } else {
+          // Handle audio
+          loopingSource.stop()
+        }
+
+        // Remove from active sources and looping tracks
+        this.activeSources.delete(normalizedUrl)
+        delete this.loopingTracks[normalizedUrl]
+
+        return true
+      } catch (err) {
+        console.error('Error stopping looping track:', normalizedUrl, err)
+        return false
+      }
+    },
+
+    // Legacy methods for backward compatibility
     pauseVideoAudio(url) {
-      if (!this.videoElements[url]) return false
-
-      const video = this.videoElements[url].element
-      video.pause()
-
-      // Remove from active sources
-      const index = this.activeSources.findIndex(
-        (source) => source.type === 'video' && source.url === url,
-      )
-
-      if (index !== -1) {
-        this.activeSources.splice(index, 1)
-      }
-
-      return true
+      return this.pauseTrack(url)
     },
 
-    // Stop playing a video
     stopVideoAudio(url) {
-      if (!this.videoElements[url]) return false
-
-      const video = this.videoElements[url].element
-      video.pause()
-      video.currentTime = 0
-
-      // Remove from active sources
-      const index = this.activeSources.findIndex(
-        (source) => source.type === 'video' && source.url === url,
-      )
-
-      if (index !== -1) {
-        this.activeSources.splice(index, 1)
-      }
-
-      return true
+      return this.stopTrack(url)
     },
 
     cleanup() {
-      // Stop all active audio sources
-      this.activeSources.forEach((source) => {
-        if (source && typeof source.stop === 'function') {
-          source.stop()
+      // Stop all active sources
+      this.activeSources.forEach((sourceData, url) => {
+        try {
+          if (sourceData.type === 'video') {
+            sourceData.source.pause()
+            sourceData.source.currentTime = 0
+          } else if (sourceData.source && typeof sourceData.source.stop === 'function') {
+            sourceData.source.stop()
+          }
+        } catch (err) {
+          console.error('Error during cleanup for:', url, err)
         }
       })
 
       // Clear the active sources
-      this.activeSources = []
+      this.activeSources.clear()
 
       // Clear looping tracks
       this.loopingTracks = {}
@@ -442,7 +570,6 @@ export const useAudioStore = defineStore('audio', {
         this.analyser = null
         this.mixer = null
       }
-      // Original cleanup code...
 
       // Clean up video elements
       Object.values(this.videoElements).forEach((videoData) => {
@@ -466,25 +593,76 @@ export const useAudioStore = defineStore('audio', {
       this.videoElements = {}
     },
 
-    // Helper function to check if a track is currently looping
-    isTrackLooping(url) {
-      return !!this.loopingTracks[url]
+    // Helper to check if video is currently playing
+    isVideoPlaying(url) {
+      // Normalize URL for consistent lookup
+      const normalizedUrl = this.normalizeUrl(url)
+      const activeSource = this.activeSources.get(normalizedUrl)
+
+      if (!activeSource || activeSource.type !== 'video') return false
+
+      const video = activeSource.source
+      return !video.paused && !video.ended && video.readyState > 2
     },
 
+    // Helper function to check if a track is currently looping
+    isTrackLooping(url) {
+      const normalizedUrl = this.normalizeUrl(url)
+      return !!this.loopingTracks[normalizedUrl]
+    },
     // Function to stop all sounds immediately
     stopAllSounds() {
       // Stop all active sources
-      this.activeSources.forEach((source) => {
+      this.activeSources.forEach((sourceData, url) => {
         try {
-          source.stop()
+          if (sourceData.type === 'video') {
+            sourceData.source.pause()
+            sourceData.source.currentTime = 0
+            sourceData.source.loop = false
+          } else if (sourceData.source && typeof sourceData.source.stop === 'function') {
+            sourceData.source.stop()
+          }
         } catch (e) {
-          console.error('Error stopping source:', e)
+          console.error('Error stopping source:', url, e)
         }
       })
 
-      // Clear arrays
-      this.activeSources = []
+      // Clear collections
+      this.activeSources.clear()
       this.loopingTracks = {}
+    },
+
+    // Function to stop all videos only
+    stopAllVideos() {
+      const videosToStop = []
+
+      // Find all active video sources
+      this.activeSources.forEach((sourceData, url) => {
+        if (sourceData.type === 'video') {
+          videosToStop.push({ url, sourceData })
+        }
+      })
+
+      // Stop each video
+      videosToStop.forEach(({ url, sourceData }) => {
+        try {
+          sourceData.source.pause()
+          sourceData.source.currentTime = 0
+          sourceData.source.loop = false
+
+          // Remove from active sources
+          this.activeSources.delete(url)
+
+          // Remove from looping tracks if it was looping
+          if (this.loopingTracks[url]) {
+            delete this.loopingTracks[url]
+          }
+        } catch (e) {
+          console.error('Error stopping video:', url, e)
+        }
+      })
+
+      return videosToStop.length // Return count of videos stopped
     },
   },
 })
